@@ -4,196 +4,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appwrite List Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@21.5.0"></script>
+    <title>Tracker</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
-        * {
-            font-family: 'Inter', sans-serif;
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
         }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * { font-family: 'Inter', sans-serif; }
 
         body {
-            transition: background-color 0.3s ease, color 0.3s ease;
-            background-color: #ffffff;
-            color: #111827;
+            transition: background-color 0.2s;
         }
 
-        body.dark {
-            background-color: #0f172a;
-            color: #f1f5f9;
-        }
-
-        .modal {
-            transition: opacity 0.2s ease;
-        }
-
-        .task-item {
-            transition: box-shadow 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
-        }
-
-        .task-item:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        body.dark .task-item:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .task-item.completed {
-            background-color: rgba(134, 239, 172, 0.2) !important;
-            border-color: rgba(134, 239, 172, 0.3) !important;
-        }
-
-        body.dark .task-item.completed {
-            background-color: rgba(134, 239, 172, 0.1) !important;
-            border-color: rgba(134, 239, 172, 0.2) !important;
-        }
-
-        .task-item.completed .task-text,
-        .task-item.completed .task-buttons {
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
-
-        .task-item.completed img {
-            opacity: 0.5;
-        }
-
+        /* Custom Checkbox */
         input[type="checkbox"] {
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border: 2px solid #d1d5db;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            position: relative;
-            transition: all 0.15s;
+            display: grid;
+            place-content: center;
+            transition: all 0.2s;
         }
-
-        body.dark input[type="checkbox"] {
-            border-color: #4b5563;
-        }
-
-        input[type="checkbox"]:hover {
-            border-color: #9ca3af;
-        }
-
-        body.dark input[type="checkbox"]:hover {
-            border-color: #6b7280;
+        .dark input[type="checkbox"] { border-color: #4b5563; }
+        
+        input[type="checkbox"]::before {
+            content: "";
+            width: 12px;
+            height: 12px;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
         }
 
         input[type="checkbox"]:checked {
-            background: #000;
-            border-color: #000;
+            background-color: #16a34a; /* Green-600 */
+            border-color: #16a34a;
+        }
+        input[type="checkbox"]:checked::before { transform: scale(1); }
+
+        /* Completed State */
+        .completed .task-text {
+            text-decoration: line-through;
+            color: #9ca3af;
         }
 
-        body.dark input[type="checkbox"]:checked {
-            background: #fff;
-            border-color: #fff;
-        }
-
-        input[type="checkbox"]:checked::after {
-            content: '✓';
-            position: absolute;
-            color: white;
-            font-size: 13px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        body.dark input[type="checkbox"]:checked::after {
-            color: #000;
-        }
-
-        .theme-toggle {
-            cursor: pointer;
-            user-select: none;
-        }
+        /* Modal Transitions */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
     </style>
 </head>
 
-<body class="min-h-screen">
+<body class="bg-[#F3F4F6] dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen py-10 px-4">
 
-    <div class="max-w-3xl mx-auto px-6 py-12">
-        <!-- Header -->
-        <header class="mb-12">
-            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-6">
-                <div>
-                    <h1 class="text-3xl font-semibold text-gray-900 dark:text-white mb-1">Tracker</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Powered by Appwrite</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div id="status" class="text-xs text-gray-600 dark:text-gray-400 px-3 py-1 border border-gray-200 dark:border-gray-700 rounded">
-                        Ready
+    <div class="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 min-h-[80vh]">
+        
+        <header class="flex justify-between items-start mb-10">
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-600/20">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </div>
-                    <button onclick="toggleTheme()" class="theme-toggle p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
-                        <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                        </svg>
-                    </button>
+                    <h1 class="text-3xl font-bold tracking-tight text-gray-800 dark:text-white">Tracker</h1>
                 </div>
+                <p class="text-gray-400 text-sm ml-1 font-medium">Powered by Appwrite</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="statusBadge" class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-200 dark:border-gray-600">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span id="status" class="text-sm font-semibold text-gray-600 dark:text-gray-300">Ready</span>
+                </div>
+
+                <button onclick="toggleTheme()" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                    <div id="themeIcon"></div>
+                </button>
             </div>
         </header>
 
-        <!-- Add Item Section -->
-        <div class="mb-12">
-            <div class="flex gap-3">
-                <input type="text" id="itemInput" placeholder="Add new task..."
-                    class="flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded focus:outline-none focus:border-gray-900">
-                <button onclick="addItem()"
-                    class="bg-gray-900 text-white px-6 py-3 rounded font-medium hover:bg-gray-800 transition-colors">
-                    Add
+        <div class="relative mb-8 group">
+            <input type="text" id="itemInput" placeholder="Add new task..."
+                class="w-full pl-6 pr-24 py-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-gray-100 dark:border-gray-700 focus:outline-none focus:border-gray-300 dark:focus:border-gray-500 text-lg placeholder-gray-400 transition-colors">
+            <button onclick="addItem()"
+                class="absolute right-2 top-2 bottom-2 bg-gray-800 hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black px-6 rounded-xl font-semibold transition-colors">
+                Add
+            </button>
+        </div>
+
+        <ul id="trackerList" class="space-y-3">
+            </ul>
+    </div>
+
+    <div id="cameraModal" class="opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-200">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeCameraModal()"></div>
+        
+        <div class="relative bg-white dark:bg-gray-800 w-full max-w-md m-4 rounded-2xl shadow-2xl p-6 transform scale-95 transition-all" id="cameraModalContent">
+            
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Attach Photo</h3>
+                <button onclick="closeCameraModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div class="relative aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden mb-5">
+                <video id="video" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+                <canvas id="canvas" class="hidden"></canvas>
+                <div id="camPlaceholder" class="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                    <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="text-sm font-medium">Camera Preview</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="handleCaptureAction()" id="captureBtn" class="w-full bg-gray-700 hover:bg-gray-800 text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    <span id="captureBtnText">Capture Photo</span>
+                </button>
+
+                <label class="w-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Upload File</span>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+                </label>
+
+                <button onclick="closeCameraModal()" class="w-full py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white font-medium text-sm">
+                    Cancel
                 </button>
             </div>
         </div>
-
-        <!-- Task List -->
-        <ul id="trackerList" class="space-y-3"></ul>
     </div>
 
-    <!-- Modal -->
-    <div id="modal"
-        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
-        <div class="modal-overlay absolute w-full h-full bg-black opacity-40" onclick="closeModal()"></div>
-        <div class="modal-container bg-white dark:bg-gray-800 w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-hidden">
-            <div class="p-6">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Attach Photo</h3>
-                <video id="video" class="w-full rounded bg-black hidden mb-4" autoplay playsinline></video>
-                <canvas id="canvas" class="hidden"></canvas>
-
-                <div id="uploadOptions" class="space-y-3">
-                    <button onclick="startCamera()" 
-                        class="w-full border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white p-4 rounded font-medium hover:border-gray-900 dark:hover:border-gray-300 transition-colors">
-                        📷 Use Camera
-                    </button>
-                    <label
-                        class="block w-full border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white p-4 rounded font-medium text-center cursor-pointer hover:border-gray-900 dark:hover:border-gray-300 transition-colors">
-                        📁 Upload File
-                        <input type="file" id="fileInput" accept="image/*" class="hidden"
-                            onchange="handleFileUpload(event)">
-                    </label>
-                </div>
-
-                <div id="cameraControls" class="hidden space-y-3">
-                    <button onclick="takeSnapshot()"
-                        class="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-                        Capture Photo
-                    </button>
-                    <button onclick="stopCamera()" 
-                        class="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-3 rounded transition-colors">
-                        Cancel
-                    </button>
-                </div>
-            </div>
+    <div id="viewModal" class="opacity-0 pointer-events-none fixed inset-0 z-[60] flex items-center justify-center transition-all duration-200">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeViewModal()"></div>
+        <div class="relative w-full max-w-3xl m-4 p-2 transform scale-95 transition-all" id="viewModalContent">
+            <button onclick="closeViewModal()" class="absolute -top-12 right-0 text-white p-2 bg-gray-800 rounded-full hover:bg-gray-700">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <img id="viewImage" src="" class="w-full h-auto max-h-[80vh] object-contain rounded-lg shadow-2xl">
         </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const { Client, Databases, Storage, ID } = Appwrite;
+        // --- APPWRITE CONFIG ---
+        const { Client, Databases, Storage, ID, Query } = Appwrite;
         const client = new Client()
             .setEndpoint('https://cloud.appwrite.io/v1')
             .setProject('695d0277001f85a20c56');
@@ -201,266 +168,180 @@
         const databases = new Databases(client);
         const storage = new Storage(client);
 
-        const DATABASE_ID = '695d028b003127f1cfb2';
-        const COLLECTION_ID = 'items';
-        const BUCKET_ID = '695d0449000be0bd564e';
+        const CONFIG = {
+            db: '695d028b003127f1cfb2',
+            col: 'items',
+            bucket: '695d0449000be0bd564e'
+        };
+
+        // --- ICONS & STATE ---
+        const ICONS = {
+            sun: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+            moon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`
+        };
 
         let items = [];
         let currentDocId = null;
         let stream = null;
-        let isUpdating = false;
+        let isCameraActive = false;
 
-        // --- THEME TOGGLE ---
+        // --- THEME & INIT ---
+        function init() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').innerHTML = ICONS.sun;
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').innerHTML = ICONS.moon;
+            }
+            fetchItems();
+        }
+
         function toggleTheme() {
-            const body = document.body;
-            const themeIcon = document.getElementById('themeIcon');
-            const itemInput = document.getElementById('itemInput');
-            const addButton = itemInput.nextElementSibling;
-            
-            if (body.classList.contains('dark')) {
-                body.classList.remove('dark');
-                // Moon icon
-                themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-                localStorage.setItem('theme', 'light');
-                
-                // Update input styling
-                itemInput.className = 'flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded focus:outline-none focus:border-gray-900';
-                addButton.className = 'bg-gray-900 text-white px-6 py-3 rounded font-medium hover:bg-gray-800 transition-colors';
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+                document.getElementById('themeIcon').innerHTML = ICONS.moon;
             } else {
-                body.classList.add('dark');
-                // Sun icon
-                themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-                localStorage.setItem('theme', 'dark');
-                
-                // Update input styling
-                itemInput.className = 'flex-1 px-4 py-3 bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded focus:outline-none focus:border-gray-300';
-                addButton.className = 'bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors';
-            }
-            
-            // Re-render items to apply theme
-            renderItems();
-        }
-
-        // Load saved theme
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            const themeIcon = document.getElementById('themeIcon');
-            const itemInput = document.getElementById('itemInput');
-            const addButton = itemInput.nextElementSibling;
-            
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark');
-                // Sun icon
-                themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-                
-                // Update input styling
-                itemInput.className = 'flex-1 px-4 py-3 bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded focus:outline-none focus:border-gray-300';
-                addButton.className = 'bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors';
-            } else {
-                // Moon icon
-                themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-                
-                // Update input styling
-                itemInput.className = 'flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded focus:outline-none focus:border-gray-900';
-                addButton.className = 'bg-gray-900 text-white px-6 py-3 rounded font-medium hover:bg-gray-800 transition-colors';
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+                document.getElementById('themeIcon').innerHTML = ICONS.sun;
             }
         }
 
-        // --- OPTIMIZED APP LOGIC ---
-
+        // --- CORE FUNCTIONS ---
         async function fetchItems() {
             try {
-                updateStatus('Syncing...');
-                const response = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
+                const response = await databases.listDocuments(CONFIG.db, CONFIG.col, [Query.orderDesc('$createdAt')]);
                 items = response.documents;
                 renderItems();
-                updateStatus('Ready');
-            } catch (error) {
-                console.error(error);
-                updateStatus('Error');
-            }
+            } catch (error) { console.error(error); }
         }
 
-        function updateStatus(text) {
-            const status = document.getElementById('status');
-            status.textContent = text;
-        }
-
-        // Optimized render with document fragment
         function renderItems() {
             const list = document.getElementById('trackerList');
             const fragment = document.createDocumentFragment();
-            const isDark = document.body.classList.contains('dark');
-            
+
+            if (items.length === 0) {
+                list.innerHTML = `<div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <svg class="w-12 h-12 mb-3 opacity-20" fill="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    <p>No tasks yet</p>
+                </div>`;
+                return;
+            }
+
             items.forEach((item) => {
-                const imgUrl = item.imageId ? storage.getFilePreview(BUCKET_ID, item.imageId) : null;
+                const viewUrl = item.imageId ? storage.getFileView(CONFIG.bucket, item.imageId) : null;
+
                 const li = document.createElement('li');
-                li.className = `task-item bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-4${item.completed ? ' completed' : ''}`;
+                const completedClasses = item.completed 
+                    ? 'completed bg-green-50 dark:bg-blue-900/30 border-green-200 dark:border-blue-800' 
+                    : 'bg-gray-50 dark:bg-gray-900 border-transparent hover:border-gray-200 dark:hover:border-gray-700';
+                li.className = `group flex items-center justify-between p-4 rounded-xl transition-all hover:shadow-sm border ${completedClasses}`;
                 
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = item.completed;
-                checkbox.onchange = () => toggleComplete(item.$id, item.completed);
-                
-                const span = document.createElement('span');
-                span.className = 'task-text text-gray-900 dark:text-white';
-                span.textContent = item.text;
-                
-                const photoBtn = document.createElement('button');
-                photoBtn.className = 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-2';
-                photoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
-                photoBtn.onclick = () => openModal(item.$id);
-                
-                const delBtn = document.createElement('button');
-                delBtn.className = 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-2';
-                delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-                delBtn.onclick = () => deleteItem(item.$id);
-                
-                const topDiv = document.createElement('div');
-                topDiv.className = 'flex items-center justify-between';
-                
-                const leftDiv = document.createElement('div');
-                leftDiv.className = 'flex items-center gap-3 flex-1';
-                leftDiv.appendChild(checkbox);
-                leftDiv.appendChild(span);
-                
-                const rightDiv = document.createElement('div');
-                rightDiv.className = 'task-buttons flex gap-1';
-                rightDiv.appendChild(photoBtn);
-                rightDiv.appendChild(delBtn);
-                
-                topDiv.appendChild(leftDiv);
-                topDiv.appendChild(rightDiv);
-                li.appendChild(topDiv);
-                
-                if (imgUrl) {
-                    const img = document.createElement('img');
-                    img.src = imgUrl;
-                    img.className = 'w-full h-48 object-cover mt-3 border border-gray-200 dark:border-gray-700';
-                    img.loading = 'lazy';
-                    li.appendChild(img);
-                }
-                
+                li.innerHTML = `
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleComplete('${item.$id}', ${item.completed})">
+                        <span class="task-text font-medium text-gray-700 dark:text-gray-200 truncate select-none">${item.text}</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 ml-4">
+                        ${viewUrl ? `
+                        <button onclick="openViewModal('${viewUrl}')" class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="View Image">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>` : ''}
+                        
+                        <button onclick="openCameraModal('${item.$id}')" class="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Add Photo">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        </button>
+
+                        <button onclick="deleteItem('${item.$id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Delete">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                `;
                 fragment.appendChild(li);
             });
-            
+
             list.innerHTML = '';
             list.appendChild(fragment);
         }
 
+        // --- ACTIONS ---
         async function addItem() {
             const input = document.getElementById('itemInput');
-            if (!input.value.trim() || isUpdating) return;
-            
-            isUpdating = true;
-            updateStatus('Adding...');
-            
+            const text = input.value.trim();
+            if (!text) return;
+
+            items.unshift({ $id: 'temp', text: text, completed: false });
+            renderItems();
+            input.value = '';
+
             try {
-                await databases.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
-                    text: input.value.trim(),
-                    completed: false
-                });
-                input.value = '';
+                await databases.createDocument(CONFIG.db, CONFIG.col, ID.unique(), { text: text, completed: false });
                 await fetchItems();
-            } catch (error) {
-                console.error(error);
-                updateStatus('Error');
-            } finally {
-                isUpdating = false;
-            }
+            } catch (error) { console.error(error); fetchItems(); }
         }
 
-        // Debounced toggle to prevent rapid clicks
-        let toggleTimeout;
-        async function toggleComplete(id, currentStatus) {
-            if (isUpdating) return;
-            
-            clearTimeout(toggleTimeout);
-            toggleTimeout = setTimeout(async () => {
-                isUpdating = true;
-                updateStatus('Updating...');
-                
-                try {
-                    await databases.updateDocument(DATABASE_ID, COLLECTION_ID, id, { 
-                        completed: !currentStatus 
-                    });
-                    await fetchItems();
-                } catch (error) {
-                    console.error(error);
-                    updateStatus('Error');
-                } finally {
-                    isUpdating = false;
-                }
-            }, 150);
+        async function toggleComplete(id, status) {
+            const item = items.find(i => i.$id === id);
+            if(item) { item.completed = !status; renderItems(); }
+            try { await databases.updateDocument(CONFIG.db, CONFIG.col, id, { completed: !status }); }
+            catch { fetchItems(); }
         }
 
         async function deleteItem(id) {
-            if (isUpdating) return;
-            
-            isUpdating = true;
-            updateStatus('Deleting...');
-            
-            try {
-                await databases.deleteDocument(DATABASE_ID, COLLECTION_ID, id);
-                await fetchItems();
-            } catch (error) {
-                console.error(error);
-                updateStatus('Error');
-            } finally {
-                isUpdating = false;
-            }
+            if(!confirm("Delete this task?")) return;
+            items = items.filter(i => i.$id !== id);
+            renderItems();
+            try { await databases.deleteDocument(CONFIG.db, CONFIG.col, id); }
+            catch { fetchItems(); }
         }
 
-        // --- CAMERA & UPLOAD ---
-
-        function openModal(id) {
+        // --- MODAL LOGIC (Matches Image Logic) ---
+        function openCameraModal(id) {
             currentDocId = id;
-            document.getElementById('modal').classList.remove('opacity-0', 'pointer-events-none');
-        }
-
-        function closeModal() {
-            stopCamera();
-            document.getElementById('modal').classList.add('opacity-0', 'pointer-events-none');
-            document.getElementById('uploadOptions').classList.remove('hidden');
-            document.getElementById('cameraControls').classList.add('hidden');
+            isCameraActive = false;
+            // Reset UI state
             document.getElementById('video').classList.add('hidden');
-        }
-
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (file) await uploadToAppwrite(file);
-        }
-
-        async function uploadToAppwrite(file) {
-            updateStatus('Uploading...');
+            document.getElementById('camPlaceholder').classList.remove('hidden');
+            document.getElementById('captureBtnText').textContent = "Capture Photo";
             
-            try {
-                const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), file);
-                await databases.updateDocument(DATABASE_ID, COLLECTION_ID, currentDocId, {
-                    imageId: uploadedFile.$id
-                });
-                closeModal();
-                await fetchItems();
-            } catch (error) {
-                console.error(error);
-                updateStatus('Error');
+            const modal = document.getElementById('cameraModal');
+            const content = document.getElementById('cameraModalContent');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }
+
+        function closeCameraModal() {
+            stopCamera();
+            const modal = document.getElementById('cameraModal');
+            const content = document.getElementById('cameraModalContent');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+        }
+
+        function handleCaptureAction() {
+            if (!isCameraActive) {
+                startCamera();
+            } else {
+                takeSnapshot();
             }
         }
 
         async function startCamera() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
                 video.classList.remove('hidden');
-                document.getElementById('uploadOptions').classList.add('hidden');
-                document.getElementById('cameraControls').classList.remove('hidden');
-            } catch (error) {
-                console.error(error);
-                alert('Camera access denied');
-            }
+                document.getElementById('camPlaceholder').classList.add('hidden');
+                document.getElementById('captureBtnText').textContent = "Take Picture";
+                isCameraActive = true;
+            } catch { alert("Camera not accessible"); }
         }
 
         function stopCamera() {
@@ -468,30 +349,64 @@
                 stream.getTracks().forEach(t => t.stop());
                 stream = null;
             }
+            isCameraActive = false;
         }
 
-        async function takeSnapshot() {
+        function takeSnapshot() {
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-
             canvas.toBlob(blob => {
-                const file = new File([blob], "snapshot.jpg", { type: "image/jpeg" });
+                const file = new File([blob], "snap.jpg", { type: "image/jpeg" });
                 uploadToAppwrite(file);
-            }, 'image/jpeg', 0.85);
+            }, 'image/jpeg', 0.8);
         }
 
-        // Enter key support
-        document.getElementById('itemInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addItem();
-        });
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) uploadToAppwrite(file);
+        }
 
-        // Initialize
-        loadTheme();
-        fetchItems();
+        async function uploadToAppwrite(file) {
+            const btn = document.getElementById('captureBtn');
+            const originalText = document.getElementById('captureBtnText').textContent;
+            document.getElementById('captureBtnText').textContent = 'Uploading...';
+            
+            try {
+                const uploaded = await storage.createFile(CONFIG.bucket, ID.unique(), file);
+                await databases.updateDocument(CONFIG.db, CONFIG.col, currentDocId, { imageId: uploaded.$id });
+                closeCameraModal();
+                await fetchItems();
+            } catch (err) { alert("Upload failed"); }
+            finally { 
+                document.getElementById('captureBtnText').textContent = originalText;
+            }
+        }
+
+        // --- VIEW MODAL ---
+        function openViewModal(url) {
+            const modal = document.getElementById('viewModal');
+            const content = document.getElementById('viewModalContent');
+            document.getElementById('viewImage').src = url;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }
+
+        function closeViewModal() {
+            const modal = document.getElementById('viewModal');
+            const content = document.getElementById('viewModalContent');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => { document.getElementById('viewImage').src = ''; }, 200);
+        }
+
+        // Init
+        init();
+        document.getElementById('itemInput').addEventListener('keydown', (e) => { if(e.key==='Enter') addItem(); });
     </script>
 </body>
-
-</html>
+</html> 
