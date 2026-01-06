@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appwrite List Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@21.5.0"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            transition: background-color 0.3s ease, color 0.3s ease;
+            background-color: #ffffff;
+            color: #111827;
+        }
+
+        body.dark {
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        .modal {
+            transition: opacity 0.2s ease;
+        }
+
+        .task-item {
+            transition: box-shadow 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .task-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        body.dark .task-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .task-item.completed {
+            background-color: rgba(134, 239, 172, 0.2) !important;
+            border-color: rgba(134, 239, 172, 0.3) !important;
+        }
+
+        body.dark .task-item.completed {
+            background-color: rgba(134, 239, 172, 0.1) !important;
+            border-color: rgba(134, 239, 172, 0.2) !important;
+        }
+
+        .task-item.completed .task-text,
+        .task-item.completed .task-buttons {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .task-item.completed img {
+            opacity: 0.5;
+        }
+
+        input[type="checkbox"] {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.15s;
+        }
+
+        body.dark input[type="checkbox"] {
+            border-color: #4b5563;
+        }
+
+        input[type="checkbox"]:hover {
+            border-color: #9ca3af;
+        }
+
+        body.dark input[type="checkbox"]:hover {
+            border-color: #6b7280;
+        }
+
+        input[type="checkbox"]:checked {
+            background: #000;
+            border-color: #000;
+        }
+
+        body.dark input[type="checkbox"]:checked {
+            background: #fff;
+            border-color: #fff;
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 13px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        body.dark input[type="checkbox"]:checked::after {
+            color: #000;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+    <div class="max-w-3xl mx-auto px-6 py-12">
+        <!-- Header -->
+        <header class="mb-12">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-6">
+                <div>
+                    <h1 class="text-3xl font-semibold text-gray-900 dark:text-white mb-1">Tracker</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Powered by Appwrite</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="status" class="text-xs text-gray-600 dark:text-gray-400 px-3 py-1 border border-gray-200 dark:border-gray-700 rounded">
+                        Ready
+                    </div>
+                    <button onclick="toggleTheme()" class="theme-toggle p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                        <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Add Item Section -->
+        <div class="mb-12">
+            <div class="flex gap-3">
+                <input type="text" id="itemInput" placeholder="Add new task..."
+                    class="flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded focus:outline-none focus:border-gray-900">
+                <button onclick="addItem()"
+                    class="bg-gray-900 text-white px-6 py-3 rounded font-medium hover:bg-gray-800 transition-colors">
+                    Add
+                </button>
+            </div>
+        </div>
+
+        <!-- Task List -->
+        <ul id="trackerList" class="space-y-3"></ul>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal"
+        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-black opacity-40" onclick="closeModal()"></div>
+        <div class="modal-container bg-white dark:bg-gray-800 w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Attach Photo</h3>
+                <video id="video" class="w-full rounded bg-black hidden mb-4" autoplay playsinline></video>
+                <canvas id="canvas" class="hidden"></canvas>
+
+                <div id="uploadOptions" class="space-y-3">
+                    <button onclick="startCamera()" 
+                        class="w-full border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white p-4 rounded font-medium hover:border-gray-900 dark:hover:border-gray-300 transition-colors">
+                        📷 Use Camera
+                    </button>
+                    <label
+                        class="block w-full border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white p-4 rounded font-medium text-center cursor-pointer hover:border-gray-900 dark:hover:border-gray-300 transition-colors">
+                        📁 Upload File
+                        <input type="file" id="fileInput" accept="image/*" class="hidden"
+                            onchange="handleFileUpload(event)">
+                    </label>
+                </div>
+
+                <div id="cameraControls" class="hidden space-y-3">
+                    <button onclick="takeSnapshot()"
+                        class="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-4 rounded font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                        Capture Photo
+                    </button>
+                    <button onclick="stopCamera()" 
+                        class="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-3 rounded transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const { Client, Databases, Storage, ID } = Appwrite;
+        const client = new Client()
+            .setEndpoint('https://cloud.appwrite.io/v1')
+            .setProject('695d0277001f85a20c56');
+
+        const databases = new Databases(client);
+        const storage = new Storage(client);
+
+        const DATABASE_ID = '695d028b003127f1cfb2';
+        const COLLECTION_ID = 'items';
+        const BUCKET_ID = '695d0449000be0bd564e';
+
+        let items = [];
+        let currentDocId = null;
+        let stream = null;
+        let isUpdating = false;
+
+        // --- THEME TOGGLE ---
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const itemInput = document.getElementById('itemInput');
+            const addButton = itemInput.nextElementSibling;
+            
+            if (body.classList.contains('dark')) {
+                body.classList.remove('dark');
+                // Moon icon
+                themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+                localStorage.setItem('theme', 'light');
+                
+                // Update input styling
+                itemInput.className = 'flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded focus:outline-none focus:border-gray-900';
+                addButton.className = 'bg-gray-900 text-white px-6 py-3 rounded font-medium hover:bg-gray-800 transition-colors';
+            } else {
+                body.classList.add('dark');
+                // Sun icon
+                themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+                localStorage.setItem('theme', 'dark');
+                
+                // Update input styling
+                itemInput.className = 'flex-1 px-4 py-3 bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded focus:outline-none focus:border-gray-300';
+                addButton.className = 'bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors';
+            }
+            
+            // Re-render items to apply theme
+            renderItems();
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeIcon = document.getElementById('themeIcon');
+            const itemInput = document.getElementById('itemInput');
+            const addButton = itemInput.nextElementSibling;
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                // Sun icon
+                themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+                
+                // Update input styling
+                itemInput.className = 'flex-1 px-4 py-3 bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded focus:outline-none focus:border-gray-300';
+                addButton.className = 'bg-white text-gray-900 px-6 py-3 rounded font-medium hover:bg-gray-100 transition-colors';
+            } else {
+                // Moon icon
+                themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+                
+                // Update input styling
+                itemInput.className = 'flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded focus:outline-none focus:border-gray-900';
+                addButton.className = 'bg-gray-900 text-white px-6 py-3 rounded font-medium hover:bg-gray-800 transition-colors';
+            }
+        }
+
+        // --- OPTIMIZED APP LOGIC ---
+
+        async function fetchItems() {
+            try {
+                updateStatus('Syncing...');
+                const response = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
+                items = response.documents;
+                renderItems();
+                updateStatus('Ready');
+            } catch (error) {
+                console.error(error);
+                updateStatus('Error');
+            }
+        }
+
+        function updateStatus(text) {
+            const status = document.getElementById('status');
+            status.textContent = text;
+        }
+
+        // Optimized render with document fragment
+        function renderItems() {
+            const list = document.getElementById('trackerList');
+            const fragment = document.createDocumentFragment();
+            const isDark = document.body.classList.contains('dark');
+            
+            items.forEach((item) => {
+                const imgUrl = item.imageId ? storage.getFilePreview(BUCKET_ID, item.imageId) : null;
+                const li = document.createElement('li');
+                li.className = `task-item bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-4${item.completed ? ' completed' : ''}`;
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = item.completed;
+                checkbox.onchange = () => toggleComplete(item.$id, item.completed);
+                
+                const span = document.createElement('span');
+                span.className = 'task-text text-gray-900 dark:text-white';
+                span.textContent = item.text;
+                
+                const photoBtn = document.createElement('button');
+                photoBtn.className = 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-2';
+                photoBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                photoBtn.onclick = () => openModal(item.$id);
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-2';
+                delBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+                delBtn.onclick = () => deleteItem(item.$id);
+                
+                const topDiv = document.createElement('div');
+                topDiv.className = 'flex items-center justify-between';
+                
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'flex items-center gap-3 flex-1';
+                leftDiv.appendChild(checkbox);
+                leftDiv.appendChild(span);
+                
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'task-buttons flex gap-1';
+                rightDiv.appendChild(photoBtn);
+                rightDiv.appendChild(delBtn);
+                
+                topDiv.appendChild(leftDiv);
+                topDiv.appendChild(rightDiv);
+                li.appendChild(topDiv);
+                
+                if (imgUrl) {
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.className = 'w-full h-48 object-cover mt-3 border border-gray-200 dark:border-gray-700';
+                    img.loading = 'lazy';
+                    li.appendChild(img);
+                }
+                
+                fragment.appendChild(li);
+            });
+            
+            list.innerHTML = '';
+            list.appendChild(fragment);
+        }
+
+        async function addItem() {
+            const input = document.getElementById('itemInput');
+            if (!input.value.trim() || isUpdating) return;
+            
+            isUpdating = true;
+            updateStatus('Adding...');
+            
+            try {
+                await databases.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+                    text: input.value.trim(),
+                    completed: false
+                });
+                input.value = '';
+                await fetchItems();
+            } catch (error) {
+                console.error(error);
+                updateStatus('Error');
+            } finally {
+                isUpdating = false;
+            }
+        }
+
+        // Debounced toggle to prevent rapid clicks
+        let toggleTimeout;
+        async function toggleComplete(id, currentStatus) {
+            if (isUpdating) return;
+            
+            clearTimeout(toggleTimeout);
+            toggleTimeout = setTimeout(async () => {
+                isUpdating = true;
+                updateStatus('Updating...');
+                
+                try {
+                    await databases.updateDocument(DATABASE_ID, COLLECTION_ID, id, { 
+                        completed: !currentStatus 
+                    });
+                    await fetchItems();
+                } catch (error) {
+                    console.error(error);
+                    updateStatus('Error');
+                } finally {
+                    isUpdating = false;
+                }
+            }, 150);
+        }
+
+        async function deleteItem(id) {
+            if (isUpdating) return;
+            
+            isUpdating = true;
+            updateStatus('Deleting...');
+            
+            try {
+                await databases.deleteDocument(DATABASE_ID, COLLECTION_ID, id);
+                await fetchItems();
+            } catch (error) {
+                console.error(error);
+                updateStatus('Error');
+            } finally {
+                isUpdating = false;
+            }
+        }
+
+        // --- CAMERA & UPLOAD ---
+
+        function openModal(id) {
+            currentDocId = id;
+            document.getElementById('modal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeModal() {
+            stopCamera();
+            document.getElementById('modal').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('uploadOptions').classList.remove('hidden');
+            document.getElementById('cameraControls').classList.add('hidden');
+            document.getElementById('video').classList.add('hidden');
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) await uploadToAppwrite(file);
+        }
+
+        async function uploadToAppwrite(file) {
+            updateStatus('Uploading...');
+            
+            try {
+                const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), file);
+                await databases.updateDocument(DATABASE_ID, COLLECTION_ID, currentDocId, {
+                    imageId: uploadedFile.$id
+                });
+                closeModal();
+                await fetchItems();
+            } catch (error) {
+                console.error(error);
+                updateStatus('Error');
+            }
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+                document.getElementById('uploadOptions').classList.add('hidden');
+                document.getElementById('cameraControls').classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                alert('Camera access denied');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+        }
+
+        async function takeSnapshot() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            canvas.toBlob(blob => {
+                const file = new File([blob], "snapshot.jpg", { type: "image/jpeg" });
+                uploadToAppwrite(file);
+            }, 'image/jpeg', 0.85);
+        }
+
+        // Enter key support
+        document.getElementById('itemInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addItem();
+        });
+
+        // Initialize
+        loadTheme();
+        fetchItems();
+    </script>
+</body>
+
+</html>
