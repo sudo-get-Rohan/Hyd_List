@@ -3,10 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Hyd Item List</title>
+    <link href="favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class'
@@ -15,14 +18,43 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        * { font-family: 'Inter', sans-serif; }
-
-        body {
+        * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { 
             transition: background-color 0.2s;
+            position: relative;
+            overflow-x: hidden;
         }
-
-        /* Custom Checkbox */
+        
+        /* Black Hole Background - Desktop Only */
+        @media (min-width: 1024px) {
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: url('img.png');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                opacity: 0.15;
+                z-index: -1;
+                pointer-events: none;
+            }
+            
+            .dark body::before {
+                opacity: 0.25;
+            }
+        }
+        
+        /* Parallax Container */
+        .parallax-wrapper {
+            position: relative;
+        }
+        
+        /* Checkbox */
         input[type="checkbox"] {
             appearance: none;
             width: 20px;
@@ -41,41 +73,40 @@
             }
         }
         .dark input[type="checkbox"] { border-color: #4b5563; }
-        
         input[type="checkbox"]::before {
             content: "";
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             transform: scale(0);
             transition: 120ms transform ease-in-out;
             box-shadow: inset 1em 1em white;
             transform-origin: center;
             clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
         }
-
-        input[type="checkbox"]:checked {
-            background-color: #16a34a; /* Green-600 */
-            border-color: #16a34a;
+        @media (min-width: 640px) {
+            input[type="checkbox"]::before {
+                width: 12px;
+                height: 12px;
+            }
         }
+        input[type="checkbox"]:checked { background-color: #16a34a; border-color: #16a34a; }
         input[type="checkbox"]:checked::before { transform: scale(1); }
-
-        /* Completed State */
-        .completed .task-text {
-            text-decoration: line-through;
-            color: #9ca3af;
+        .completed .task-text { text-decoration: line-through; color: #9ca3af; }
+        
+        /* Important Badge Animation */
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
         }
-
-        /* Modal Transitions */
-        .modal-enter { opacity: 0; transform: scale(0.95); }
-        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
-        .modal-exit { opacity: 1; transform: scale(1); }
-        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
+        .important-badge {
+            animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
     </style>
 </head>
 
 <body class="bg-[#F3F4F6] dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen py-4 sm:py-6 md:py-10 px-3 sm:px-4">
 
-    <div class="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-4 sm:p-6 md:p-8 min-h-[80vh]">
+    <div class="parallax-wrapper max-w-3xl mx-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-4 sm:p-6 md:p-8 min-h-[80vh]" id="mainContainer">
         
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-10">
             <div class="flex flex-col gap-1">
@@ -83,17 +114,16 @@
                     <div class="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-600/20">
                         <svg width="20" height="20" class="sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </div>
-                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-800 dark:text-white">Tracker</h1>
+                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-800 dark:text-white">Hyd Item List</h1>
                 </div>
-                <p class="text-gray-400 text-xs sm:text-sm ml-1 font-medium">Powered by Appwrite</p>
+                <p class="text-gray-400 text-xs sm:text-sm ml-1 font-medium">- Rohan Dutta ❤️</p>
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <div id="statusBadge" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-200 dark:border-gray-600 flex-1 sm:flex-initial">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span id="status" class="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Ready</span>
+                    <div id="statusDot" class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <span id="status" class="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Connecting...</span>
                 </div>
-
                 <button onclick="toggleTheme()" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors flex-shrink-0">
                     <div id="themeIcon"></div>
                 </button>
@@ -101,21 +131,16 @@
         </header>
 
         <div class="relative mb-6 sm:mb-8 group">
-            <input type="text" id="itemInput" placeholder="Add new task..."
+            <input type="text" id="itemInput" placeholder="Add new item..."
                 class="w-full pl-4 sm:pl-6 pr-20 sm:pr-24 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-gray-100 dark:border-gray-700 focus:outline-none focus:border-gray-300 dark:focus:border-gray-500 text-base sm:text-lg placeholder-gray-400 transition-colors">
-            <button onclick="addItem()"
-                class="absolute right-2 top-2 bottom-2 bg-gray-800 hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black px-4 sm:px-6 rounded-xl font-semibold transition-colors text-sm sm:text-base">
-                Add
-            </button>
+            <button onclick="addItem()" class="absolute right-2 top-2 bottom-2 bg-gray-800 hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black px-4 sm:px-6 rounded-xl font-semibold transition-colors text-sm sm:text-base">Add</button>
         </div>
 
-        <ul id="trackerList" class="space-y-2 sm:space-y-3">
-            </ul>
+        <ul id="trackerList" class="space-y-2 sm:space-y-3"></ul>
     </div>
 
     <div id="cameraModal" class="opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center transition-all duration-200">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeCameraModal()"></div>
-        
         <div class="relative bg-white dark:bg-gray-800 w-full max-w-md m-4 rounded-2xl shadow-2xl p-6 transform scale-95 transition-all" id="cameraModalContent">
             
             <div class="flex justify-between items-center mb-4">
@@ -139,16 +164,12 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                     <span id="captureBtnText">Capture Photo</span>
                 </button>
-
                 <label class="w-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     <span>Upload File</span>
                     <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
                 </label>
-
-                <button onclick="closeCameraModal()" class="w-full py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white font-medium text-sm">
-                    Cancel
-                </button>
+                <button onclick="closeCameraModal()" class="w-full py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white font-medium text-sm">Cancel</button>
             </div>
         </div>
     </div>
@@ -164,14 +185,15 @@
     </div>
 
     <script>
-        // --- APPWRITE CONFIG ---
-        const { Client, Databases, Storage, ID, Query } = Appwrite;
+        const { Client, Databases, Storage, Account, ID, Query } = Appwrite;
+        
         const client = new Client()
             .setEndpoint('https://cloud.appwrite.io/v1')
             .setProject('695d0277001f85a20c56');
 
         const databases = new Databases(client);
         const storage = new Storage(client);
+        const account = new Account(client);
 
         const CONFIG = {
             db: '695d028b003127f1cfb2',
@@ -179,47 +201,49 @@
             bucket: '695d0449000be0bd564e'
         };
 
-        // --- ICONS & STATE ---
         const ICONS = {
             sun: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
             moon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`
         };
+
+        async function initSession() {
+            try { await account.get(); } 
+            catch { try { await account.createAnonymousSession(); } catch (err) { console.error(err); } }
+            updateStatus(true);
+            fetchItems();
+        }
 
         let items = [];
         let currentDocId = null;
         let stream = null;
         let isCameraActive = false;
 
-        // --- THEME & INIT ---
-        function init() {
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                document.getElementById('themeIcon').innerHTML = ICONS.sun;
+        function updateStatus(isReady) {
+            const statusText = document.getElementById('status');
+            const statusDot = document.getElementById('statusDot');
+            if (isReady) {
+                statusText.textContent = "Ready";
+                statusDot.className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
             } else {
-                document.documentElement.classList.remove('dark');
-                document.getElementById('themeIcon').innerHTML = ICONS.moon;
-            }
-            fetchItems();
-        }
-
-        function toggleTheme() {
-            const html = document.documentElement;
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                localStorage.theme = 'light';
-                document.getElementById('themeIcon').innerHTML = ICONS.moon;
-            } else {
-                html.classList.add('dark');
-                localStorage.theme = 'dark';
-                document.getElementById('themeIcon').innerHTML = ICONS.sun;
+                statusText.textContent = "Connecting...";
+                statusDot.className = "w-2 h-2 bg-yellow-500 rounded-full";
             }
         }
 
-        // --- CORE FUNCTIONS ---
         async function fetchItems() {
             try {
                 const response = await databases.listDocuments(CONFIG.db, CONFIG.col, [Query.orderDesc('$createdAt')]);
                 items = response.documents;
+                
+                // Sort: important items first
+                items.sort((a, b) => {
+                    const aImp = a.important === 'i';
+                    const bImp = b.important === 'i';
+                    if (aImp && !bImp) return -1;
+                    if (!aImp && bImp) return 1;
+                    return 0;
+                });
+
                 renderItems();
             } catch (error) { console.error(error); }
         }
@@ -237,20 +261,34 @@
             }
 
             items.forEach((item) => {
+                const isImportant = item.important === 'i';
                 const viewUrl = item.imageId ? storage.getFileView(CONFIG.bucket, item.imageId) : null;
-
                 const li = document.createElement('li');
+
                 const completedClasses = item.completed 
                     ? 'completed bg-green-50 dark:bg-blue-900/30 border-green-200 dark:border-blue-800' 
                     : 'bg-gray-50 dark:bg-gray-900 border-transparent hover:border-gray-200 dark:hover:border-gray-700';
+                
                 li.className = `group flex items-center justify-between p-3 sm:p-4 rounded-xl transition-all hover:shadow-sm border ${completedClasses}`;
                 
                 li.innerHTML = `
-                    <div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                    <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleComplete('${item.$id}', ${item.completed})" class="flex-shrink-0">
-                        <span class="task-text font-medium text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate select-none">${item.text}</span>
-                    </div>
+                        
+                        ${isImportant ? `
+                        <div class="important-badge flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-md shadow-red-500/30">
+                            <svg width="12" height="12" class="sm:w-3.5 sm:h-3.5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="2" x2="12" y2="16"></line>
+                                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                            </svg>
+                        </div>
+                        ` : ''}
 
+                        <span class="task-text font-medium text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate select-none">
+                            ${item.text}
+                        </span>
+                    </div>
+                    
                     <div class="flex items-center gap-1 sm:gap-2 ml-2 sm:ml-4 flex-shrink-0">
                         ${viewUrl ? `
                         <button onclick="openViewModal('${viewUrl}')" class="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="View Image">
@@ -268,7 +306,6 @@
                 `;
                 fragment.appendChild(li);
             });
-
             list.innerHTML = '';
             list.appendChild(fragment);
         }
@@ -278,41 +315,46 @@
             const input = document.getElementById('itemInput');
             const text = input.value.trim();
             if (!text) return;
-
-            items.unshift({ $id: 'temp', text: text, completed: false });
+            items.unshift({ $id: 'temp', text: text, completed: false, important: null });
             renderItems();
             input.value = '';
-
-            try {
-                await databases.createDocument(CONFIG.db, CONFIG.col, ID.unique(), { text: text, completed: false });
-                await fetchItems();
-            } catch (error) { console.error(error); fetchItems(); }
+            try { 
+                await databases.createDocument(CONFIG.db, CONFIG.col, ID.unique(), { text: text, completed: false }); 
+                await fetchItems(); 
+            } catch (error) { 
+                console.error(error); 
+                fetchItems(); 
+            }
         }
 
         async function toggleComplete(id, status) {
             const item = items.find(i => i.$id === id);
             if(item) { item.completed = !status; renderItems(); }
-            try { await databases.updateDocument(CONFIG.db, CONFIG.col, id, { completed: !status }); }
-            catch { fetchItems(); }
+            try { 
+                await databases.updateDocument(CONFIG.db, CONFIG.col, id, { completed: !status }); 
+            } catch { 
+                fetchItems(); 
+            }
         }
 
         async function deleteItem(id) {
             if(!confirm("Delete this task?")) return;
             items = items.filter(i => i.$id !== id);
             renderItems();
-            try { await databases.deleteDocument(CONFIG.db, CONFIG.col, id); }
-            catch { fetchItems(); }
+            try { 
+                await databases.deleteDocument(CONFIG.db, CONFIG.col, id); 
+            } catch { 
+                fetchItems(); 
+            }
         }
 
-        // --- MODAL LOGIC (Matches Image Logic) ---
+        // --- CAMERA ---
         function openCameraModal(id) {
             currentDocId = id;
             isCameraActive = false;
-            // Reset UI state
             document.getElementById('video').classList.add('hidden');
             document.getElementById('camPlaceholder').classList.remove('hidden');
             document.getElementById('captureBtnText').textContent = "Capture Photo";
-            
             const modal = document.getElementById('cameraModal');
             const content = document.getElementById('cameraModalContent');
             modal.classList.remove('opacity-0', 'pointer-events-none');
@@ -330,11 +372,8 @@
         }
 
         function handleCaptureAction() {
-            if (!isCameraActive) {
-                startCamera();
-            } else {
-                takeSnapshot();
-            }
+            if (!isCameraActive) startCamera();
+            else takeSnapshot();
         }
 
         async function startCamera() {
@@ -342,11 +381,15 @@
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
-                video.classList.remove('hidden');
-                document.getElementById('camPlaceholder').classList.add('hidden');
-                document.getElementById('captureBtnText').textContent = "Take Picture";
+                video.onloadedmetadata = () => {
+                    video.classList.remove('hidden');
+                    document.getElementById('camPlaceholder').classList.add('hidden');
+                    document.getElementById('captureBtnText').textContent = "Take Picture";
+                };
                 isCameraActive = true;
-            } catch { alert("Camera not accessible"); }
+            } catch (err) {
+                alert("Camera not accessible");
+            }
         }
 
         function stopCamera() {
@@ -364,37 +407,34 @@
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             canvas.toBlob(blob => {
-                const file = new File([blob], "snap.jpg", { type: "image/jpeg" });
-                uploadToAppwrite(file);
+                uploadToAppwrite(new File([blob], "snap.jpg", { type: "image/jpeg" }));
             }, 'image/jpeg', 0.8);
         }
 
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (file) uploadToAppwrite(file);
+        function handleFileUpload(event) {
+            if (event.target.files[0]) uploadToAppwrite(event.target.files[0]);
         }
 
         async function uploadToAppwrite(file) {
-            const btn = document.getElementById('captureBtn');
-            const originalText = document.getElementById('captureBtnText').textContent;
+            const orig = document.getElementById('captureBtnText').textContent;
             document.getElementById('captureBtnText').textContent = 'Uploading...';
-            
             try {
                 const uploaded = await storage.createFile(CONFIG.bucket, ID.unique(), file);
                 await databases.updateDocument(CONFIG.db, CONFIG.col, currentDocId, { imageId: uploaded.$id });
                 closeCameraModal();
                 await fetchItems();
-            } catch (err) { alert("Upload failed"); }
-            finally { 
-                document.getElementById('captureBtnText').textContent = originalText;
+            } catch (err) {
+                alert("Upload failed");
+            } finally {
+                document.getElementById('captureBtnText').textContent = orig;
             }
         }
 
-        // --- VIEW MODAL ---
+        // --- VIEW & THEME ---
         function openViewModal(url) {
+            document.getElementById('viewImage').src = url;
             const modal = document.getElementById('viewModal');
             const content = document.getElementById('viewModalContent');
-            document.getElementById('viewImage').src = url;
             modal.classList.remove('opacity-0', 'pointer-events-none');
             content.classList.remove('scale-95');
             content.classList.add('scale-100');
@@ -409,9 +449,95 @@
             setTimeout(() => { document.getElementById('viewImage').src = ''; }, 200);
         }
 
-        // Init
-        init();
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').innerHTML = ICONS.sun;
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').innerHTML = ICONS.moon;
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+                document.getElementById('themeIcon').innerHTML = ICONS.moon;
+            } else {
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+                document.getElementById('themeIcon').innerHTML = ICONS.sun;
+            }
+        }
+
+        // INIT
+        initTheme();
+        initSession();
         document.getElementById('itemInput').addEventListener('keydown', (e) => { if(e.key==='Enter') addItem(); });
+        
+        // GSAP Scroll Effects - Desktop Only
+        if (window.innerWidth >= 1024) {
+            gsap.registerPlugin(ScrollTrigger);
+            
+            // Main container fade in and scale on load
+            gsap.from("#mainContainer", {
+                duration: 1.2,
+                opacity: 0,
+                scale: 0.95,
+                ease: "power3.out"
+            });
+            
+            // Header parallax effect
+            gsap.to("header", {
+                scrollTrigger: {
+                    trigger: "header",
+                    start: "top top",
+                    end: "bottom top",
+                    scrub: 1
+                },
+                y: -50,
+                opacity: 0.8
+            });
+            
+            // Task items animate on scroll
+            function animateTaskItems() {
+                const taskItems = document.querySelectorAll("#trackerList > li");
+                taskItems.forEach((item, index) => {
+                    gsap.from(item, {
+                        scrollTrigger: {
+                            trigger: item,
+                            start: "top bottom-=100",
+                            toggleActions: "play none none reverse"
+                        },
+                        opacity: 0,
+                        x: -30,
+                        duration: 0.6,
+                        delay: index * 0.05,
+                        ease: "power2.out"
+                    });
+                });
+            }
+            
+            // Call animation after items render
+            const originalRenderItems = renderItems;
+            renderItems = function() {
+                originalRenderItems();
+                setTimeout(animateTaskItems, 100);
+            };
+            
+            // Parallax scroll effect for background
+            gsap.to("body::before", {
+                scrollTrigger: {
+                    trigger: "body",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scrub: true
+                },
+                backgroundPosition: "center 50%"
+            });
+        }
     </script>
 </body>
 </html>
